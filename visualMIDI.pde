@@ -22,6 +22,7 @@ static class ToneColours {
 
 int toneOffset = 3; // C is 0, C# is 1, etc
 float scrollSpeed = 0.6;
+boolean drawLines = true;
 int lineTimeout = 1000; // Maximum time in ms between notes to draw a line between them
 int minMidiNote = 21; // default 36
 int maxMidiNote = 108; // default 84 This is the range of my 48-key keyboard
@@ -56,7 +57,9 @@ void draw() {
       if (lastNoteEvents.containsKey(event.note.channel)) {
         NoteEvent previousNote = lastNoteEvents.get(event.note.channel);
 
+        // Line drawing
         if (
+          drawLines &&
           event.time - previousNote.time < lineTimeout && // Check if notes are close enough to draw lines between..
           event.time - previousNote.time > 5              // ..but not right on top of each other.
         ) {
@@ -73,6 +76,7 @@ void draw() {
 
       lastNoteEvents.put(event.note.channel, event);
 
+      // Bubble drawing
       fill(ToneColours.tones[(event.note.pitch - toneOffset) % 12]);
       circle(
         width - (frameTime - event.time) * scrollSpeed, 
