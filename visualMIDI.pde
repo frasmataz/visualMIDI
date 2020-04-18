@@ -1,6 +1,7 @@
 import themidibus.*;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.HashMap;
 
 static class ToneColours {
   public static color[] tones = {
@@ -15,12 +16,13 @@ static class ToneColours {
    #0b670b, // 5#
    #670b39, // 6
    #0b6767, // 6#
-   #67390b // 7
+   #67390b  // 7
   };
 }
 
 int toneOffset = 3; // C is 0, C# is 1, etc
-float scrollSpeed = 0.3;
+float scrollSpeed = 0.6;
+int lineTimeout = 1000; // Maximum time in ms between notes to draw a line between them
 int minMidiNote = 21; // default 36
 int maxMidiNote = 108; // default 84 This is the range of my 48-key keyboard
 
@@ -30,6 +32,7 @@ ArrayList<NoteEvent> eventList = new ArrayList<NoteEvent>();
 void setup() { 
   size(1920, 1080);
   background(0);
+  strokeWeight(4);
   blendMode(EXCLUSION);
 }
 
@@ -38,6 +41,7 @@ void draw() {
   clear();
   
   long frameTime = System.currentTimeMillis();
+  HashMap<Integer, NoteEvent> lastNoteEvents = new HashMap<Integer, NoteEvent>();
   
   // Iterate through all note events
   for (int i = 0; i < eventList.size(); i++) {
@@ -49,6 +53,26 @@ void draw() {
       
     // Otherwise, draw the note
     } else {
+      if (lastNoteEvents.containsKey(event.note.channel)) {
+        NoteEvent previousNote = lastNoteEvents.get(event.note.channel);
+
+        if (
+          event.time - previousNote.time < lineTimeout && // Check if notes are close enough to draw lines between..
+          event.time - previousNote.time > 5              // ..but not right on top of each other.
+        ) {
+          stroke(ToneColours.tones[(previousNote.note.pitch - toneOffset) % 12]);
+          line(
+            width - (frameTime - previousNote.time) * scrollSpeed,
+            height - ((previousNote.note.pitch - minMidiNote) * height / (maxMidiNote - minMidiNote)),
+            width - (frameTime - event.time) * scrollSpeed,
+            height - ((event.note.pitch - minMidiNote) * height / (maxMidiNote - minMidiNote))
+          );
+          noStroke();
+        }
+      }
+
+      lastNoteEvents.put(event.note.channel, event);
+
       fill(ToneColours.tones[(event.note.pitch - toneOffset) % 12]);
       circle(
         width - (frameTime - event.time) * scrollSpeed, 
